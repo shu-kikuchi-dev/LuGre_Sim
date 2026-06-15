@@ -1,6 +1,7 @@
 # --- MATLAB Specific ---
+*.slxc
+slprj/
 *.asv
-*.slprj
 *.autosave
 *.p
 *.mex*          # バイナリファイル（環境依存）
@@ -16,3 +17,9 @@ work/
 # --- System Files ---
 .DS_Store
 Thumbs.db
+
+# -- Temporary Figures ---
+tmp_figs/
+*.png
+*.jpg
+*.pdf
