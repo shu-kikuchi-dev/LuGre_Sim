@@ -20,6 +20,3 @@ Thumbs.db
 
 # -- Temporary Figures ---
 tmp_figs/
-*.png
-*.jpg
-*.pdf
