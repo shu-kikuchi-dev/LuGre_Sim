@@ -1,0 +1,37 @@
+[Basic rule]
+	yy-mm-dd_{Graph Title(option)}_{Parameter1}-vs-{Parameter2}_{Parameter3(option)}-vs-{Parameter4(option)}_{solver}_{other significant settings}
+
+
+
+[Other Expressions]
+when you set the parameter with value, you can write like below:
+
+	omega-1000
+
+if the parameter is smaller than 1, you cannot dot the period, so write like:
+
+	omega-0p1
+
+the p(period) in above example has a role as period.
+
+and if the value is smaller than zero, you will express minus with directly type n(negative) like:
+
+	v-n10
+
+this means parameter v is set to -10.
+
+if you set the all significant parameters as some example, you can write like:
+
+	parameters-{example name}
+	
+	e.g. parameters-paper
+
+and, if you want to save the same figure by another angle, you can name like:
+
+	{Obey to the Basic Rule}_ver{number}
+
+number is must be bigger than 1. note that you do not have to add tag "ver" to original one.
+
+additionally if the graph hase several curves to comparison, you can write like:
+
+	omega-1-10-25
