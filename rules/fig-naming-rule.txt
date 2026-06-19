@@ -1,5 +1,5 @@
 [Basic rule]
-	yy-mm-dd_{Graph Title(option)}_{Parameter1}-vs-{Parameter2}_{Parameter3(option)}-vs-{Parameter4(option)}_{solver}_{other significant settings}
+	yy-mm-dd_{Graph Title(option)}_{Parameter1}-vs-{Parameter2}_{Parameter3(option)}-vs-{Parameter4(option)}_{solver}_{other significant settings}_{phenomenon explanation(option)}
 
 
 
