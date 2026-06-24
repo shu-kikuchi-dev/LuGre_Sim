@@ -35,3 +35,13 @@ number is must be bigger than 1. note that you do not have to add tag "ver" to o
 additionally if the graph hase several curves to comparison, you can write like:
 
 	omega-1-10-25
+
+and you better not use capital letter. you should use only lowercase letter even you want to distinct the place of space of the long word because you cannot insert space to the file name.
+ofcourse the long word that written by only lowercase letter without any spaces will make us struggle to read. but its is better not to insert capital letter, because irregular capital letter will cause
+some confusions to us later. for example, if you want to write about the parameter 'relative torelance', you can write like 'relative_torelance', 'relativeTorelance', 'relative_Torelance',... in many ways.
+
+if there are several ways to express just one word, that will make confusion on you in future. so we better define do not use or try to distinct unexisted space in kind of long word such like 'relative torelance'.
+so we should write like just 'relative torelance'. this is bit difficult to read in first look, but this will help some automatical processing may be happen in later phase of the research.
+
+[ideal example]
+	26-06-24_F-vs-x_ode23tb_params-paper_maxstepsize-1en4_relativetorelance-1en7_absolutetorelance-1en10_duration-10_amp-4en6_omega-10_phase-0_bias-0
