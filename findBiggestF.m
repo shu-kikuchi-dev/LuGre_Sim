@@ -22,7 +22,7 @@ for i = 1:length(target_force_rates)
 
     % 2. Run the simulation
     % We use 'sim' command and pass 'v_pull' to the workspace
-    simOut = sim(model_name, 'StopTime', '10', 'SrcWorkspace', 'current'):
+    simOut = sim(model_name, 'StopTime', '10', 'SrcWorkspace', 'current');
 
     % 3. Extract the Friction Force data
     % Assuming you used Signal Logging or a 'To Workspace' block
@@ -37,12 +37,12 @@ for i = 1:length(target_force_rates)
     results_force_rate(i) = current_fr;
     results_breakaway(i) = break_away_force;
 
-    fprintf('Rate: %4. 1f N/s | Break-away Force: %6. 4f N\n', current_fr, break_away_force);
+    fprintf('Rate: %4.1f N/s | Break-away Force: %6.4f N\n', current_fr, break_away_force);
 end
 
 %% --- Plotting the Result ---
 figure;
-plot(result_force_rate, results_breakaway, 'bo-', 'LineWidth', 1.5, 'MarkerSize', 8);
+plot(results_force_rate, results_breakaway, 'bo-', 'LineWidth', 1.5, 'MarkerSize', 8);
 grid on;
 xlabel('Force Rate /(N/m)');
 ylabel('Break-away Force /N');
