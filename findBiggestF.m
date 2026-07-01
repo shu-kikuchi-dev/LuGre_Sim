@@ -16,24 +16,25 @@ results_breakaway = zeros(size(target_force_rates));
 fprintf('Starting Break-away Force Analysis...\n');
 
 for i = 1:length(target_force_rates)
-    % 1. Calculate the necessary ramp velocity for this Force Rate
     current_fr = target_force_rates(i);
-    v_pull = current_fr / k;    % Slope for the Ramp block
+    v_pull = current_fr / k;
 
-    % 2. Run the simulation
-    % We use 'sim' command and pass 'v_pull' to the workspace
-    simOut = sim(model_name, 'StopTime', '10', 'SrcWorkspace', 'current');
+    simOut = sim(model_name, 'StopTime', '20');
 
-    % 3. Extract the Friction Force data
-    % Assuming you used Signal Logging or a 'To Workspace' block
-    % If using a 'To Workspace' block:
+    z_data = simOut.z_out;
+    v_data = simOut.v_out;
     F_data = simOut.F_out;
 
-    % 4. Find the MAXIMAM friction force (the Break-away point)
-    % max(F) occurs when z is at its limit
-    break_away_force = max(F_data);
+    z_ss_dynamic = (1.0 + (1.5 - 1.0) * exp(-(abs(v_data) ./ 0.001).^2)) / 1e5;
 
-    % Store the results
+    break_idx = find(abs(z_data) >= 0.999 * z_ss_dynamic, 1);
+
+    if isempty(break_idx)
+        break_away_force = max(F_data);
+    else
+        break_away_force = F_data(break_idx);
+    end
+
     results_force_rate(i) = current_fr;
     results_breakaway(i) = break_away_force;
 
