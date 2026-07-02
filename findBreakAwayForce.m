@@ -5,6 +5,14 @@ model_name = 'LuGre_model_A';
 m = 1.0;    % Mass /kg
 k = 2;      % Spring Constant /(N/m)
 
+% LuGre Model Parameters
+sigma0 = 1e5;
+sigma1 = sqrt(sigma0);
+sigma2 = 0.4;
+Fc = 1.0;
+Fs = 1.5;
+vs = 0.001;
+
 % Range of Force Rate to test /(N/s)
 % Force Rate = k * v_pull. So we vary v_pull to get different rates.
 target_force_rates = [0.1, 0.5, 1, 2, 5, 10, 15, 20, 30, 40, 50];
@@ -25,7 +33,7 @@ for i = 1:length(target_force_rates)
     v_data = simOut.v_out;
     F_data = simOut.F_out;
 
-    z_ss_dynamic = (1.0 + (1.5 - 1.0) * exp(-(abs(v_data) ./ 0.001).^2)) / 1e5;
+    z_ss_dynamic = (Fc + (Fs - Fc) * exp(-(abs(v_data) ./ vs).^2)) / sigma0;
 
     break_idx = find(abs(z_data) >= 0.999 * z_ss_dynamic, 1);
 
