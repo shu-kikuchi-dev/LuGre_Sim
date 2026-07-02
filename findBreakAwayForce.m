@@ -27,7 +27,7 @@ for i = 1:length(target_force_rates)
     current_fr = target_force_rates(i);
     v_pull = current_fr / k;
 
-    simOut = sim(model_name, 'StopTime', '20');
+    simOut = sim(model_name, 'StopTime', '30');
 
     z_data = simOut.z_out;
     v_data = simOut.v_out;
