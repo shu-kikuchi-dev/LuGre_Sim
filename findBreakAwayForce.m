@@ -1,5 +1,5 @@
 %% --- Break-away Force vs Force Rate Automation ---
-model_name = 'LuGre_model_A';
+model_name = 'LuGre_model_BAFvsFR';
 
 % Physical Parameters
 m = 1.0;    % Mass /kg
