@@ -20,3 +20,6 @@ Thumbs.db
 
 # -- Temporary Figures ---
 tmp_figs/
+
+# -- Temporary CSV Files for PySR --
+tmp_csv_files/

@@ -24,17 +24,32 @@ v_pull_list = [0.01, 0.1];
 for m_val = m_list
     for k_val = k_list
         for vp_val = v_pull_list
-            m = m_val; k = k_val; v_pull = vp_vall; % Push variables to Workspace
+            m = m_val; k = k_val; v_pull = vp_val; % Push variables to Workspace
             fprintf('Simulating Spring-Mass model: m=%.1f, k=%d, v_pull=%.2f\n', m, k, v_pull);
 
-            simOut = sim(model_sys, 'StopTime', '20');
+            simOut = sim(sys_model, 'StopTime', '20');
 
-            % Sync to 1 ms grid
-            ts = synchronize(simOut.v_out, simOut.z_out, simOut.dzdt_out, simOut.F_out, ...
-                'Uniform', 'Interval', 0.0001);
+            % Convert Timeseries to Timetable for its superior synch
+            % function
+            ttV = timeseries2timetable(simOut.v_out);
+            ttZ = timeseries2timetable(simOut.z_out);
+            ttDZ = timeseries2timetable(simOut.dzdt_out);
+            ttF = timeseries2timetable(simOut.F_out);
+
+            % Sync to 0.1 ms grid
+            % This process is essential since the solver(ode23tb) tries to
+            % get many points during transient and few points during
+            % stable.
+            ts = synchronize(ttV, ttZ, ttDZ, ttF, 'regular', 'linear', 'TimeStep', seconds(0.0001));
+
+            % Column 1: v, Column 2: z, Column3: dzdt, Column 4: F
+            v_col = ts{:, 1};
+            z_col = ts{:, 2};
+            dzdt_col = ts{:, 3};
+            F_col = ts{:, 4};
 
             % Create Capsule
-            capsule = table(ts.v_out.Data, ts.z_out.Data*z_scale, ts.dzdt_out.Data*z_scale, ts.F_out.Data, ...
+            capsule = table(v_col, z_col*z_scale, dzdt_col*z_scale, F_col, ...
                 'VariableNames', {'v', 'z_norm', 'dzdt_norm', 'F'});
             master_table = [master_table; capsule];
         end
@@ -51,14 +66,23 @@ for om_val = omega_list
         omega = om_val; amp = amp_val; % Push variables to Workspace
         fprintf('Simulating Direct Velocity Input Model: omega=%d, amp=%.2e\n', omega, amp);
 
-        simOut = sim(model_vel, 'StopTime', '10');
+        simOut = sim(vel_model, 'StopTime', '10');
 
-        ts = synchronize(simOut.v_out, simOut.z_out, simOut.dzdt_out, simOut.F_out, ...
-            'Uniform', 'Interval', 0.0001);
+        ttV = timeseries2timetable(simOut.v_out);
+        ttZ = timeseries2timetable(simOut.z_out);
+        ttDZ = timeseries2timetable(simOut.dzdt_out);
+        ttF = timeseries2timetable(simOut.F_out);
 
-        capsule = table(ts.v_out.Data, ts.z_out.Data*z_scale, ts.dzdt_out.Data*z_scale, ts.F_out.Data, ...
-            'VariableNames', {'v', 'z_norm', 'dzdt_norm', 'F'});
-        master_table = [master_table; capsule];
+        v_col = ts{:, 1};
+        z_col = ts{:, 2};
+        dzdt_col = ts{:, 3};
+        F_col = ts{:, 4};
+
+        ts = synchronize(ttV, ttZ, ttDZ, ttF, 'regular', 'linear', 'TimeStep', seconds(0.0001));
+
+        capsule = table(v_col, z_col*z_scale, dzdt_col*z_scale, F_col, ...
+                'VariableNames', {'v', 'z_norm', 'dzdt_norm', 'F'});
+            master_table = [master_table; capsule];
     end
 end
 
@@ -66,9 +90,9 @@ end
 % Balancing: Keep transients, downsample steady-state
 fprintf('Balancing and Filtering Data...\n');
 % "Interesting" if velocity is high OR internal state is changing fast
-is_interesting = (abs(master_table.v) > 1e-4) | (abs(master_table.szdt_norm) > 0.1);
+is_interesting = (abs(master_table.v) > 1e-4) | (abs(master_table.dzdt_norm) > 0.1);
 boring_indices = find(~is_interesting);
-keep_boring = boring_indices(1:30:end); % Keep only 1 out of 30 boring points
+keep_boring = boring_indices(1:100:end); % Keep only 1 out of 100 boring points
 final_indices = sort([find(is_interesting); keep_boring]);
 
 final_table = master_table(final_indices, :);
@@ -85,7 +109,10 @@ fprintf('Saved as: pysr_master_friction_data.csv\n');
 
 %% --- Verification Plot ---
 figure;
-scatter3(final_table.v, final_table.z_norm, final_table.F, 2, final_table.dzdt_norm, 'filled');
+% Sample 5000 points for the plot to avoid slowing down the PC
+plot_idx = randperm(size(final_table, 1), min(5000, size(final_table, 1)));
+scatter3(final_table.v(plot_idx), final_table.z_norm(plot_idx), final_table.F(plot_idx), ...
+    5, final_table.dzdt_norm(plot_idx), 'filled');
 colormap("jet"); colorbar;
 xlabel('Velocity /(m/s)'); ylabel('Internal State z (normalized)'); zlabel('Friction Force /N');
 title('Visualizing the State-Space Surface for PySR');
