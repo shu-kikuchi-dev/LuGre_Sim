@@ -73,12 +73,12 @@ for om_val = omega_list
         ttDZ = timeseries2timetable(simOut.dzdt_out);
         ttF = timeseries2timetable(simOut.F_out);
 
+        ts = synchronize(ttV, ttZ, ttDZ, ttF, 'regular', 'linear', 'TimeStep', seconds(0.0001));
+
         v_col = ts{:, 1};
         z_col = ts{:, 2};
         dzdt_col = ts{:, 3};
         F_col = ts{:, 4};
-
-        ts = synchronize(ttV, ttZ, ttDZ, ttF, 'regular', 'linear', 'TimeStep', seconds(0.0001));
 
         capsule = table(v_col, z_col*z_scale, dzdt_col*z_scale, F_col, ...
                 'VariableNames', {'v', 'z_norm', 'dzdt_norm', 'F'});
@@ -108,6 +108,32 @@ fprintf('Final dataset contains %d rows.\n', size(final_table, 1));
 fprintf('Saved as: pysr_master_friction_data.csv\n');
 
 %% --- Verification Plot ---
+% Dividing the data to see the details
+% 1. Macro Regime (High Speed Sliding)
+macro_data = final_table(abs(final_table.v) > 0.01, :);
+% Sample 5000 points for the plot to avoid slowing down the PC
+idx_macro = randperm(size(macro_data, 1), min(5000, size(macro_data, 1)));
+
+% 2. Micro Regime (Stiction and Pre-Sliding)
+micro_data = final_table(abs(final_table.v) <= 0.01, :);
+% Sample 5000 points for the plot to avoid slowing down the PC
+idx_micro = randperm(size(micro_data, 1), min(5000, size(micro_data, 1)));
+
+% Plot them separately
+figure;
+subplot(1, 2, 1);
+scatter3(macro_data.v(idx_macro), macro_data.z_norm(idx_macro), macro_data.F(idx_macro), 5, 'red', 'filled');
+title('Macro: Kinetic Regime (The Needle)');
+xlabel('v /(m/s)'); ylabel('z (normalized)'); zlabel('F /N');
+
+subplot(1, 2, 2);
+scatter3(micro_data.v(idx_micro), micro_data.z_norm(idx_micro), micro_data.F(idx_micro), 5, 'blue', 'filled');
+title('Micro: Static Regime (The Wall)');
+xlabel('v /(m/s)'); ylabel('z (normalized)'); zlabel('F /N');
+
+title('Visualizing the State-Space Surface for PySR');
+grid on;
+
 figure;
 % Sample 5000 points for the plot to avoid slowing down the PC
 plot_idx = randperm(size(final_table, 1), min(5000, size(final_table, 1)));
