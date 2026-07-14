@@ -33,9 +33,9 @@ fprintf('--- Starting Master Data Collection ---\n');
 
 %% --- Part 1: Spring-Mass System (LuGre_Spring_Mass_Model, Source ID: 0, Plot Color: Blue) ---
 % Captures: Stick-Slip, Rate-Dependency, Damping, and Mass variation.
-m_list = [0.5, 1.0, 5.0];
-k_list = [2, 20, 100];
-v_pull_list = [0.01, 0.1];
+m_list = [0.5, 1.0, 10.0, 20.0];
+k_list = [2, 20, 200];
+v_pull_list = [-0.1, -0.01, 0.01, 0.1];
 
 for m_val = m_list
     for k_val = k_list
@@ -75,8 +75,8 @@ end
 
 %% --- Part 2: Direct Velocity (LuGre_Velocity_Model, Source ID: 1, Plot Color: Red) ---
 % Captures: Clean Hysteresis Loops (Pre-sliding & Sliding) and Stribeck Curve.
-omega_list = [1, 10, 25];
-amp_list = [5e-6, 1e-3, 5e-3];
+omega_list = [0.5, 5, 50];
+amp_list = [1e-6, 1e-3, 1e-2];
 
 for om_val = omega_list
     for amp_val = amp_list
