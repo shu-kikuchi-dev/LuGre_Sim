@@ -11,8 +11,8 @@ clearvars; clc; close all;
 save_csv_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_csv_files';
 save_fig_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
 
-csv_name = '26-07-14_script-generatepysrdatawithz_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
-fig_name = '26-07-14_script-generatepysrdatawithz_in-a-different-color-by-models_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
+csv_name = '26-07-14_script-generatepysrdatawithz_to-observe-more-loops-ver2_in-a-different-color-by-models_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
+fig_name = '26-07-14_script-generatepysrdatawithz_to-observe-more-loops-ver2_in-a-different-color-by-models_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
 % ====================================================================================
 
 % Model Configurations
@@ -75,8 +75,8 @@ end
 
 %% --- Part 2: Direct Velocity (LuGre_Velocity_Model, Source ID: 1, Plot Color: Red) ---
 % Captures: Clean Hysteresis Loops (Pre-sliding & Sliding) and Stribeck Curve.
-omega_list = [0.5, 5, 50];
-amp_list = [1e-6, 1e-3, 1e-2];
+omega_list = [0.5, 1, 10, 25, 50, 200];
+amp_list = [1e-6, 1e-3, 1e-2, 1e-1];
 
 for om_val = omega_list
     for amp_val = amp_list
