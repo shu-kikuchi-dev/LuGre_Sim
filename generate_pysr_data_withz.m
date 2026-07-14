@@ -2,6 +2,15 @@
 % Coverage: Stick-Slip, Hysteresis, rate-Dependency, Pre-sliding, and Damping.
 clearvars; clc; close all;
 
+% ====================================================================================
+% USER SETTINGS (Directory and Naming)
+% ====================================================================================
+save_csv_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_csv_files';
+save_fig_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
+csv_name = '26-07-14_script-generatepysrdatawithz_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
+fig_name = '26-07-14_script-generatepysrdatawithz_in-a-different-color-by-models_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
+% ====================================================================================
+
 % Model Configurations
 vel_model = 'LuGre_Velocity_Model';    % Direct Velocity Input
 sys_model = 'LuGre_Spring_Mass_Model'; % Spring-Mass System
@@ -13,9 +22,12 @@ z_scale = 1e5; % Normalization factor for z and dz/dt
 
 master_table = table(); % Storage for all simulations
 
+if ~exist(save_csv_dir, 'dir'), mkdir(save_csv_dir); end
+if ~exist(save_fig_dir, 'dir'), mkdir(save_fig_dir); end
+
 fprintf('--- Starting Master Data Collection ---\n');
 
-%% --- Part 1: Spring-Mass System (LuGre_Spring_Mass_Model) ---
+%% --- Part 1: Spring-Mass System (LuGre_Spring_Mass_Model, Source ID: 0, Plot Color: Blue) ---
 % Captures: Stick-Slip, Rate-Dependency, Damping, and Mass variation.
 m_list = [0.5, 1.0, 5.0];
 k_list = [2, 20, 100];
@@ -47,16 +59,17 @@ for m_val = m_list
             z_col = ts{:, 2};
             dzdt_col = ts{:, 3};
             F_col = ts{:, 4};
+            Source = zeros(size(v_col)); % Source ID: 0
 
             % Create Capsule
-            capsule = table(v_col, z_col*z_scale, dzdt_col*z_scale, F_col, ...
-                'VariableNames', {'v', 'z_norm', 'dzdt_norm', 'F'});
+            capsule = table(v_col, z_col*z_scale, dzdt_col*z_scale, F_col, Source, ...
+                'VariableNames', {'v', 'z_norm', 'dzdt_norm', 'F', 'Source'});
             master_table = [master_table; capsule];
         end
     end
 end
 
-%% --- Part 2: Direct Velocity (LuGre_Velocity_Model) ---
+%% --- Part 2: Direct Velocity (LuGre_Velocity_Model, Source ID: 1, Plot Color: Red) ---
 % Captures: Clean Hysteresis Loops (Pre-sliding & Sliding) and Stribeck Curve.
 omega_list = [1, 10, 25];
 amp_list = [5e-6, 1e-3, 5e-3];
@@ -79,9 +92,10 @@ for om_val = omega_list
         z_col = ts{:, 2};
         dzdt_col = ts{:, 3};
         F_col = ts{:, 4};
+        Source = ones(size(v_col)); % Source ID: 1
 
-        capsule = table(v_col, z_col*z_scale, dzdt_col*z_scale, F_col, ...
-                'VariableNames', {'v', 'z_norm', 'dzdt_norm', 'F'});
+        capsule = table(v_col, z_col*z_scale, dzdt_col*z_scale, F_col, Source, ...
+                'VariableNames', {'v', 'z_norm', 'dzdt_norm', 'F', 'Source'});
             master_table = [master_table; capsule];
     end
 end
@@ -101,14 +115,15 @@ final_table = master_table(final_indices, :);
 final_table = final_table(randperm(size(final_table, 1)), :);
 
 % Export to CSV for PySR
-writetable(final_table, 'pysr_master_friction_data.csv');
+csv_path = fullfile(save_csv_dir, [csv_name, '.csv']);
+writetable(final_table, csv_path);
 
 fprintf('--- Success! ---\n');
 fprintf('Final dataset contains %d rows.\n', size(final_table, 1));
-fprintf('Saved as: pysr_master_friction_data.csv\n');
+fprintf('Saved as: %s.csv\n', csv_name);
 
 %% --- Verification Plot ---
-% Dividing the data to see the details
+% Dividing the data by size to see the details
 % 1. Macro Regime (High Speed Sliding)
 macro_data = final_table(abs(final_table.v) > 0.01, :);
 % Sample 5000 points for the plot to avoid slowing down the PC
@@ -116,30 +131,40 @@ idx_macro = randperm(size(macro_data, 1), min(5000, size(macro_data, 1)));
 
 % 2. Micro Regime (Stiction and Pre-Sliding)
 micro_data = final_table(abs(final_table.v) <= 0.01, :);
-% Sample 5000 points for the plot to avoid slowing down the PC
 idx_micro = randperm(size(micro_data, 1), min(5000, size(micro_data, 1)));
 
+fig_final = figure('Name', 'LuGre Multi-Scale Analysis', 'Position', [100, 100, 1200, 500]);
+
 % Plot them separately
-figure;
-subplot(1, 2, 1);
-scatter3(macro_data.v(idx_macro), macro_data.z_norm(idx_macro), macro_data.F(idx_macro), 5, 'red', 'filled');
+% Macro Regime
+subplot(1, 2, 1); hold on;
+% Dividing data by the model (Source 0=SpringMass, 1=Velocity)
+ma_spMa = macro_data.Source == 0; ma_vel = macro_data.Source == 1;
+% ma_spMa, Blue
+scatter3(macro_data.v(idx_macro(ma_spMa(idx_macro))), macro_data.z_norm(idx_macro(ma_spMa(idx_macro))), macro_data.F(idx_macro(ma_spMa(idx_macro))), 5, 'Blue', 'filled');
+% ma_vel, Red
+scatter3(macro_data.v(idx_macro(ma_vel(idx_macro))), macro_data.z_norm(idx_macro(ma_vel(idx_macro))), macro_data.F(idx_macro(ma_vel(idx_macro))), 5, 'Red', 'filled');
 title('Macro: Kinetic Regime (The Needle)');
 xlabel('v /(m/s)'); ylabel('z (normalized)'); zlabel('F /N');
+grid on;
+legend('Spring Mass Model: Blue', 'Velocity Model: Red', 'Location', 'north');i
 
-subplot(1, 2, 2);
-scatter3(micro_data.v(idx_micro), micro_data.z_norm(idx_micro), micro_data.F(idx_micro), 5, 'blue', 'filled');
+% Micro Regime
+subplot(1, 2, 2); hold on;
+% Dividing data by the model (Source 0=SpringMass, 1=Velocity)
+mi_spMa = micro_data.Source == 0; mi_vel = micro_data.Source == 1;
+% mi_spMa, Blue
+scatter3(micro_data.v(idx_micro(mi_spMa(idx_micro))), micro_data.z_norm(idx_micro(mi_spMa(idx_micro))), micro_data.F(idx_micro(mi_spMa(idx_micro))), 5, 'Blue', 'filled');
+% mi_vel, Red
+scatter3(micro_data.v(idx_micro(mi_vel(idx_micro))), micro_data.z_norm(idx_micro(mi_vel(idx_micro))), micro_data.F(idx_micro(mi_vel(idx_micro))), 5, 'Red', 'filled');
 title('Micro: Static Regime (The Wall)');
 xlabel('v /(m/s)'); ylabel('z (normalized)'); zlabel('F /N');
-
-title('Visualizing the State-Space Surface for PySR');
 grid on;
+legend('Spring Mass Model: Blue', 'Velocity Model: Red', 'Location', 'north');
 
-figure;
-% Sample 5000 points for the plot to avoid slowing down the PC
-plot_idx = randperm(size(final_table, 1), min(5000, size(final_table, 1)));
-scatter3(final_table.v(plot_idx), final_table.z_norm(plot_idx), final_table.F(plot_idx), ...
-    5, final_table.dzdt_norm(plot_idx), 'filled');
-colormap("jet"); colorbar;
-xlabel('Velocity /(m/s)'); ylabel('Internal State z (normalized)'); zlabel('Friction Force /N');
-title('Visualizing the State-Space Surface for PySR');
-grid on;
+% Saving Figure
+fig_path = fullfile(save_fig_dir, [fig_name, '.fig']);
+savefig(fig_final, fig_path);
+
+fprintf('--- Success! ---\n');
+fprintf('Figure saved as: %s.fig\n', fig_name);
