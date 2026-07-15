@@ -5,14 +5,16 @@ clearvars; clc; close all;
 % ====================================================================================
 % USER SETTINGS (Directory and Naming)
 % ====================================================================================
-% FOR MY DESKTOP save_csv_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_csv_files';
-% FOR MY DESKTOP save_fig_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
+% FOR MY DESKTOP 
+save_csv_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_csv_files';
+% FOR MY DESKTOP 
+save_fig_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
 
-save_csv_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_csv_files';
-save_fig_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
+% FOR MY LAPTOP save_csv_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_csv_files';
+% FOR MY LAPTOP save_fig_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
 
-csv_name = '26-07-14_script-generatepysrdatawithz_to-observe-more-loops-ver2_in-a-different-color-by-models_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
-fig_name = '26-07-14_script-generatepysrdatawithz_to-observe-more-loops-ver2_in-a-different-color-by-models_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
+csv_name = '26-07-15_script-generatepysrdatawithz_extended-stop-time_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
+fig_name = '26-07-15_script-generatepysrdatawithz_extended-stop-time_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
 % ====================================================================================
 
 % Model Configurations
@@ -81,9 +83,12 @@ amp_list = [1e-6, 1e-3, 1e-2, 1e-1];
 for om_val = omega_list
     for amp_val = amp_list
         omega = om_val; amp = amp_val; % Push variables to Workspace
-        fprintf('Simulating Direct Velocity Input Model: omega=%d, amp=%.2e\n', omega, amp);
 
-        simOut = sim(vel_model, 'StopTime', '10');
+        % Dynamic Stop Time: Ensure at least 3 full cycles for z to reach steady state
+        stop_time = max(30, (2*pi/omega)*3);
+        fprintf('Simulating Direct Velocity Input Model: omega=%.1f, amp=%.2e, Duration=%.1f\n', omega, amp, stop_time);
+
+        simOut = sim(vel_model, 'StopTime', num2str(stop_time));
 
         ttV = timeseries2timetable(simOut.v_out);
         ttZ = timeseries2timetable(simOut.z_out);
