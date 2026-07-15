@@ -13,8 +13,8 @@ save_fig_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_figs\Master
 % FOR MY LAPTOP save_csv_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_csv_files';
 % FOR MY LAPTOP save_fig_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
 
-csv_name = '26-07-15_script-generatepysrdatawithz_extended-stop-time_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
-fig_name = '26-07-15_script-generatepysrdatawithz_extended-stop-time_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
+csv_name = '26-07-15_script-generatepysrdatawithz_refine-velocity-params-and-filter-conditions_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
+fig_name = '26-07-15_script-generatepysrdatawithz_refine-velocity-params-and-filter-conditions_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
 % ====================================================================================
 
 % Model Configurations
@@ -77,7 +77,7 @@ end
 
 %% --- Part 2: Direct Velocity (LuGre_Velocity_Model, Source ID: 1, Plot Color: Red) ---
 % Captures: Clean Hysteresis Loops (Pre-sliding & Sliding) and Stribeck Curve.
-omega_list = [0.5, 1, 10, 25, 50, 200];
+omega_list = [0.1 0.5, 1, 10, 25, 50];
 amp_list = [1e-6, 1e-3, 1e-2, 1e-1];
 
 for om_val = omega_list
@@ -113,7 +113,8 @@ end
 % Balancing: Keep transients, downsample steady-state
 fprintf('Balancing and Filtering Data...\n');
 % "Interesting" if velocity is high OR internal state is changing fast
-is_interesting = (abs(master_table.v) > 1e-4) | (abs(master_table.dzdt_norm) > 0.1);
+% Since velocity model is so smooth, most of all red points would not reach z=0.1
+is_interesting = (abs(master_table.v) > 1e-4) | (abs(master_table.dzdt_norm) > 0.1) | (master_table.Source == 1);
 boring_indices = find(~is_interesting);
 keep_boring = boring_indices(1:100:end); % Keep only 1 out of 100 boring points
 final_indices = sort([find(is_interesting); keep_boring]);
@@ -132,46 +133,57 @@ fprintf('Final dataset contains %d rows.\n', size(final_table, 1));
 fprintf('Saved as: %s.csv\n', csv_name);
 
 %% --- Verification Plot ---
-% Dividing the data by size to see the details
-% 1. Macro Regime (High Speed Sliding)
-macro_data = final_table(abs(final_table.v) > 0.01, :);
-% Sample 5000 points for the plot to avoid slowing down the PC
+% 1. Define Regime Thresholds
+% vs = 0.001, we use 1e-3 as the micro boundary.
+micro_data = final_table(abs(final_table.v) < 1e-3, :); % Micro (Pre-Sliding)
+meso_data = final_table(abs(final_table.v) >= 1e-3 & abs(final_table.v) < 0.1, :); % Meso (Stribeck)
+macro_data = final_table(abs(final_table.v) >= 0.1, :); % Macro (Viscous)
+
+% 2. Extract 5000 points for the plot to avoid slowing down the PC
+idx_micro = randperm(size(micro_data, 1), min(5000, size(micro_data, 1)));
+idx_meso = randperm(size(meso_data, 1), min(5000, size(meso_data, 1)));
 idx_macro = randperm(size(macro_data, 1), min(5000, size(macro_data, 1)));
 
-% 2. Micro Regime (Stiction and Pre-Sliding)
-micro_data = final_table(abs(final_table.v) <= 0.01, :);
-idx_micro = randperm(size(micro_data, 1), min(5000, size(micro_data, 1)));
+% 3. Initialize Figure
+fig_final = figure('Name', 'LuGre 3-Regime Analysis', 'Position', [50, 50, 1600, 500]);
 
-fig_final = figure('Name', 'LuGre Multi-Scale Analysis', 'Position', [100, 100, 1200, 500]);
-
-% Plot them separately
-% Macro Regime
-subplot(1, 2, 1); hold on;
-% Dividing data by the model (Source 0=SpringMass, 1=Velocity)
-ma_spMa = macro_data.Source == 0; ma_vel = macro_data.Source == 1;
-% ma_spMa, Blue
-scatter3(macro_data.v(idx_macro(ma_spMa(idx_macro))), macro_data.z_norm(idx_macro(ma_spMa(idx_macro))), macro_data.F(idx_macro(ma_spMa(idx_macro))), 5, 'Blue', 'filled');
-% ma_vel, Red
-scatter3(macro_data.v(idx_macro(ma_vel(idx_macro))), macro_data.z_norm(idx_macro(ma_vel(idx_macro))), macro_data.F(idx_macro(ma_vel(idx_macro))), 5, 'Red', 'filled');
-title('Macro: Kinetic Regime (The Needle)');
-xlabel('v /(m/s)'); ylabel('z (normalized)'); zlabel('F /N');
-grid on;
-legend('Spring Mass Model: Blue', 'Velocity Model: Red', 'Location', 'north');i
-
-% Micro Regime
-subplot(1, 2, 2); hold on;
-% Dividing data by the model (Source 0=SpringMass, 1=Velocity)
+% 4. Plot Micro Regime (Pre-Sliding)
+subplot(1, 3, 1); hold on;
 mi_spMa = micro_data.Source == 0; mi_vel = micro_data.Source == 1;
-% mi_spMa, Blue
-scatter3(micro_data.v(idx_micro(mi_spMa(idx_micro))), micro_data.z_norm(idx_micro(mi_spMa(idx_micro))), micro_data.F(idx_micro(mi_spMa(idx_micro))), 5, 'Blue', 'filled');
-% mi_vel, Red
-scatter3(micro_data.v(idx_micro(mi_vel(idx_micro))), micro_data.z_norm(idx_micro(mi_vel(idx_micro))), micro_data.F(idx_micro(mi_vel(idx_micro))), 5, 'Red', 'filled');
-title('Micro: Static Regime (The Wall)');
+scatter3(micro_data.v(idx_micro(mi_spMa(idx_micro))), micro_data.z_norm(idx_micro(mi_spMa(idx_micro))), ...
+    micro_data.F(idx_micro(mi_spMa(idx_micro))), 5, 'Blue', 'filled');
+scatter3(micro_data.v(idx_micro(mi_vel(idx_micro))), micro_data.z_norm(idx_micro(mi_vel(idx_micro))), ...
+    micro_data.F(idx_micro(mi_vel(idx_micro))), 5, 'Red', 'filled');
+title('Micro (Pre-Sliding)');
 xlabel('v /(m/s)'); ylabel('z (normalized)'); zlabel('F /N');
 grid on;
 legend('Spring Mass Model: Blue', 'Velocity Model: Red', 'Location', 'north');
 
-% Saving Figure
+% 5. Plot Meso Regime (Stribeck)
+subplot(1, 3, 2); hold on;
+me_spMa = meso_data.Source == 0; me_vel = meso_data.Source == 1;
+scatter3(meso_data.v(idx_meso(me_spMa(idx_meso))), meso_data.z_norm(idx_meso(me_spMa(idx_meso))), ...
+    meso_data.F(idx_meso(me_spMa(idx_meso))), 5, 'Blue', 'filled');
+scatter3(meso_data.v(idx_meso(me_vel(idx_meso))), meso_data.z_norm(idx_meso(me_vel(idx_meso))), ...
+    meso_data.F(idx_meso(me_vel(idx_meso))), 5, 'Red', 'filled');
+title('Meso (Stribeck)');
+xlabel('v /(m/s)'); ylabel('z (normalized)'); zlabel('F /N');
+grid on;
+legend('Spring Mass Model: Blue', 'Velocity Model: Red', 'Location', 'north');
+
+% 6. Plot Macro Regime (Viscous)
+subplot(1, 3, 3); hold on;
+ma_spMa = macro_data.Source == 0; ma_vel = macro_data.Source == 1;
+scatter3(macro_data.v(idx_macro(ma_spMa(idx_macro))), macro_data.z_norm(idx_macro(ma_spMa(idx_macro))), ...
+    macro_data.F(idx_macro(ma_spMa(idx_macro))), 5, 'Blue', 'filled');
+scatter3(macro_data.v(idx_macro(ma_vel(idx_macro))), macro_data.z_norm(idx_macro(ma_vel(idx_macro))), ...
+    macro_data.F(idx_macro(ma_vel(idx_macro))), 5, 'Red', 'filled');
+title('Macro (Viscous)');
+xlabel('v /(m/s)'); ylabel('z (normalized)'); zlabel('F /N');
+grid on;
+legend('Spring Mass Model: Blue', 'Velocity Model: Red', 'Location', 'north');
+
+% 7. Saving Figure
 fig_path = fullfile(save_fig_dir, [fig_name, '.fig']);
 savefig(fig_final, fig_path);
 
