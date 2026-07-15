@@ -13,8 +13,8 @@ save_fig_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_figs\Master
 % FOR MY LAPTOP save_csv_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_csv_files';
 % FOR MY LAPTOP save_fig_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
 
-csv_name = '26-07-15_script-generatepysrdatawithz_refine-velocity-params-and-filter-conditions_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
-fig_name = '26-07-15_script-generatepysrdatawithz_refine-velocity-params-and-filter-conditions_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
+csv_name = '26-07-15_script-generatepysrdatawithz_refine-extracting-to-take-interesting-points-more-than-boring-one_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
+fig_name = '26-07-15_script-generatepysrdatawithz_refine-extracting-to-take-interesting-points-more-than-boring-one_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
 % ====================================================================================
 
 % Model Configurations
@@ -117,73 +117,59 @@ fprintf('Balancing and Filtering Data...\n');
 is_interesting = (abs(master_table.v) > 1e-4) | (abs(master_table.dzdt_norm) > 0.1) | (master_table.Source == 1);
 boring_indices = find(~is_interesting);
 keep_boring = boring_indices(1:100:end); % Keep only 1 out of 100 boring points
-final_indices = sort([find(is_interesting); keep_boring]);
-
-final_table = master_table(final_indices, :);
-
-% Shuffling (Prevents bias from time-order)
-final_table = final_table(randperm(size(final_table, 1)), :);
+final_idx = sort([find(is_interesting); keep_boring]);
+final_table = master_table(final_idx, :);
 
 % Export to CSV for PySR
+% refine shuffling to shuffle only for csv, not for raw data to extract points equally
 csv_path = fullfile(save_csv_dir, [csv_name, '.csv']);
-writetable(final_table, csv_path);
-
+shuffled_table = final_table(randperm(size(final_table, 1)), :);
+writetable(shuffled_table, csv_path);
 fprintf('--- Success! ---\n');
 fprintf('Final dataset contains %d rows.\n', size(final_table, 1));
 fprintf('Saved as: %s.csv\n', csv_name);
 
 %% --- Verification Plot ---
-% 1. Define Regime Thresholds
-% vs = 0.001, we use 1e-3 as the micro boundary.
-micro_data = final_table(abs(final_table.v) < 1e-3, :); % Micro (Pre-Sliding)
-meso_data = final_table(abs(final_table.v) >= 1e-3 & abs(final_table.v) < 0.1, :); % Meso (Stribeck)
-macro_data = final_table(abs(final_table.v) >= 0.1, :); % Macro (Viscous)
+is_int = (abs(master_table.v) > 1e-4) | (abs(master_table.dzdt_norm) > 0.1);
+% Initialize Figure
+fig_final = figure('Name', 'Physics-Prioritized Analysis', 'Position', [50, 50, 1600, 500]);
+% Define 3 Regimes
+regime_names = {'Micro (Pre-Sliding)', 'Meso (Stribeck)', 'Macro (Viscous)'};
+regime_limits = [0, 1e-3; 1e-3, 0.1; 0.1, inf];
 
-% 2. Extract 5000 points for the plot to avoid slowing down the PC
-idx_micro = randperm(size(micro_data, 1), min(5000, size(micro_data, 1)));
-idx_meso = randperm(size(meso_data, 1), min(5000, size(meso_data, 1)));
-idx_macro = randperm(size(macro_data, 1), min(5000, size(macro_data, 1)));
+for r = 1:3
+    subplot(1, 3, r); hold on;
+    v_min = regime_limits(r, 1);
+    v_max = regime_limits(r, 2);
 
-% 3. Initialize Figure
-fig_final = figure('Name', 'LuGre 3-Regime Analysis', 'Position', [50, 50, 1600, 500]);
+    for s = [0, 1] % 0=Blue, 1=Red
+        % Extract all interesting points in the regime
+        idx_int = find(is_int & abs(final_table.v) >= v_min & abs(final_table.v) < v_max & final_table.Source == s);
 
-% 4. Plot Micro Regime (Pre-Sliding)
-subplot(1, 3, 1); hold on;
-mi_spMa = micro_data.Source == 0; mi_vel = micro_data.Source == 1;
-scatter3(micro_data.v(idx_micro(mi_spMa(idx_micro))), micro_data.z_norm(idx_micro(mi_spMa(idx_micro))), ...
-    micro_data.F(idx_micro(mi_spMa(idx_micro))), 5, 'Blue', 'filled');
-scatter3(micro_data.v(idx_micro(mi_vel(idx_micro))), micro_data.z_norm(idx_micro(mi_vel(idx_micro))), ...
-    micro_data.F(idx_micro(mi_vel(idx_micro))), 5, 'Red', 'filled');
-title('Micro (Pre-Sliding)');
-xlabel('v /(m/s)'); ylabel('z (normalized)'); zlabel('F /N');
-grid on;
-legend('Spring Mass Model: Blue', 'Velocity Model: Red', 'Location', 'north');
+        % Extract few boring points in the regime
+        idx_bor_all = find(~is_int & abs(final_table.v) >= v_min & abs(final_table.v) < v_max & final_table.Source == s);
+        idx_bor_sample = idx_bor_all(randperm(length(idx_bor_all), min(1000, length(idx_bor_all))));
 
-% 5. Plot Meso Regime (Stribeck)
-subplot(1, 3, 2); hold on;
-me_spMa = meso_data.Source == 0; me_vel = meso_data.Source == 1;
-scatter3(meso_data.v(idx_meso(me_spMa(idx_meso))), meso_data.z_norm(idx_meso(me_spMa(idx_meso))), ...
-    meso_data.F(idx_meso(me_spMa(idx_meso))), 5, 'Blue', 'filled');
-scatter3(meso_data.v(idx_meso(me_vel(idx_meso))), meso_data.z_norm(idx_meso(me_vel(idx_meso))), ...
-    meso_data.F(idx_meso(me_vel(idx_meso))), 5, 'Red', 'filled');
-title('Meso (Stribeck)');
-xlabel('v /(m/s)'); ylabel('z (normalized)'); zlabel('F /N');
-grid on;
-legend('Spring Mass Model: Blue', 'Velocity Model: Red', 'Location', 'north');
+        color = [0 0.4 0.8]; if s==0, color = [0.8 0 0]; end % Blue for Spring-Mass, Red for Velocity
 
-% 6. Plot Macro Regime (Viscous)
-subplot(1, 3, 3); hold on;
-ma_spMa = macro_data.Source == 0; ma_vel = macro_data.Source == 1;
-scatter3(macro_data.v(idx_macro(ma_spMa(idx_macro))), macro_data.z_norm(idx_macro(ma_spMa(idx_macro))), ...
-    macro_data.F(idx_macro(ma_spMa(idx_macro))), 5, 'Blue', 'filled');
-scatter3(macro_data.v(idx_macro(ma_vel(idx_macro))), macro_data.z_norm(idx_macro(ma_vel(idx_macro))), ...
-    macro_data.F(idx_macro(ma_vel(idx_macro))), 5, 'Red', 'filled');
-title('Macro (Viscous)');
-xlabel('v /(m/s)'); ylabel('z (normalized)'); zlabel('F /N');
-grid on;
-legend('Spring Mass Model: Blue', 'Velocity Model: Red', 'Location', 'north');
+        % Plot
+        if ~isempty(idx_bor_sample)
+            scatter3(final_table.v(idx_bor_sample), final_table.z_norm(idx_bor_sample), final_table.F(idx_bor_sample), ...
+                2, color, 'MarkerEdgeAlpha', 0.2);
+        end
+        if ~isempty(idx_int)
+            scatter3(final_table.v(id_int), final_table.z_norm(idx_int), final_table.F(idx_int), ...
+                6, color, 'filled');
+        end
+    end
 
-% 7. Saving Figure
+    title(regime_names{r}); xlabel('velocity /(m/s)'); ylabel('z (normalized)'); zlabel('F'); grid on;
+    if r == 1, view(0, 0); else, view(45, 30); end
+end
+
+legend('Spring-Mass Model', 'Velocity Model', 'Location', 'southoutside', 'Orientation', 'horizontal');
+
+% Saving Figure
 fig_path = fullfile(save_fig_dir, [fig_name, '.fig']);
 savefig(fig_final, fig_path);
 
