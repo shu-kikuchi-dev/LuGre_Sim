@@ -13,8 +13,8 @@ save_fig_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_figs\Master
 % FOR MY LAPTOP save_csv_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_csv_files';
 % FOR MY LAPTOP save_fig_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
 
-csv_name = '26-07-16_script-generatepysrdatawithz_refine-extracting-to-take-interesting-points-more-than-boring-one-for-visualization_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
-fig_name = '26-07-16_script-generatepysrdatawithz_refine-extracting-to-take-interesting-points-more-than-boring-one-for-visualization_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
+csv_name = '26-07-16_script-generatepysrdatawithz_refine-legend-display_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
+fig_name = '26-07-16_script-generatepysrdatawithz_refine-legend-display_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
 % ====================================================================================
 
 % Model Configurations
@@ -158,15 +158,17 @@ for r = 1:3
                 2, color, 'MarkerEdgeAlpha', 0.2);
         end
         if ~isempty(idx_int)
-            scatter3(final_table.v(idx_int), final_table.z_norm(idx_int), final_table.F(idx_int), ...
+            h(s+1) = scatter3(final_table.v(idx_int), final_table.z_norm(idx_int), final_table.F(idx_int), ...
                 6, color, 'filled');
         end
     end
 
     title(regime_names{r}); xlabel('velocity /(m/s)'); ylabel('z (normalized)'); zlabel('F'); grid on;
-    legend('Spring-Mass Model', 'Velocity Model', 'Location', 'southoutside', 'Orientation', 'horizontal');
     if r == 1, view(0, 0); else, view(45, 30); end
 end
+
+legend([h(1), h(2)], {'Spring-Mass Model (Blue)', 'Velocity Model (Red)'}, ...
+    'Location', 'southoutside', 'Orientation', 'horizontal');
 
 % Saving Figure
 fig_path = fullfile(save_fig_dir, [fig_name, '.fig']);
