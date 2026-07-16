@@ -13,8 +13,8 @@ save_fig_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_figs\Master
 % FOR MY LAPTOP save_csv_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_csv_files';
 % FOR MY LAPTOP save_fig_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
 
-csv_name = '26-07-16_script-generatepysrdatawithz_refine-legend-display_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
-fig_name = '26-07-16_script-generatepysrdatawithz_refine-legend-display_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
+csv_name = '26-07-16_script-generatepysrdatawithz_refine-filtering-condition-not-to-have-all-results-from-velocity-model_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
+fig_name = '26-07-16_script-generatepysrdatawithz_refine-filtering-condition-not-to-have-all-results-from-velocity-model_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
 % ====================================================================================
 
 % Model Configurations
@@ -112,16 +112,23 @@ end
 %% --- Part 3: Post-Processing (Data Science Specs) ---
 % Balancing: Keep transients, downsample steady-state
 fprintf('Balancing and Filtering Data...\n');
-% "Interesting" if velocity is high OR internal state is changing fast
-% Since velocity model is so smooth, most of all red points would not reach z=0.1
-is_interesting = (abs(master_table.v) > 1e-4) | (abs(master_table.dzdt_norm) > 0.1) | (master_table.Source == 1);
-boring_indices = find(~is_interesting);
-keep_boring = boring_indices(1:100:end); % Keep only 1 out of 100 boring points
-final_idx = sort([find(is_interesting); keep_boring]);
+
+% Separate Indices
+idx_spMa = find(master_table.Source == 0); % Spring Mass (Blue)
+idx_vel = find(master_table.Source == 1); % Velocity (Red)
+
+% Spring Mass Model Filtering
+is_int_spMa = (abs(master_table.v(idx_spMa)) > 1e-4) | (abs(master_table.dzdt_norm(idx_spMa)) > 0.1);
+keep_spMa = [idx_spMa(is_int_spMa); idx_spMa(find(~is_int_spMa, 1, 'first'):500:end)];
+
+% Velocity Model Filtering
+keep_vel = idx_vel(1:100:end);
+
+% Combine and Sort
+final_idx = sort([keep_spMa; keep_vel]);
 final_table = master_table(final_idx, :);
 
-% Export to CSV for PySR
-% refine shuffling to shuffle only for csv, not for raw data to extract points equally
+% Shuffle and Export for PySR
 csv_path = fullfile(save_csv_dir, [csv_name, '.csv']);
 shuffled_table = final_table(randperm(size(final_table, 1)), :);
 writetable(shuffled_table, csv_path);
