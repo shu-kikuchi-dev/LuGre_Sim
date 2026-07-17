@@ -13,8 +13,8 @@ save_fig_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_figs\Master
 % FOR MY LAPTOP save_csv_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_csv_files';
 % FOR MY LAPTOP save_fig_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
 
-csv_name = '26-07-16_script-generatepysrdatawithz_refine-filtering-condition-not-to-have-all-results-from-velocity-model_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
-fig_name = '26-07-16_script-generatepysrdatawithz_refine-filtering-condition-not-to-have-all-results-from-velocity-model_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
+csv_name = '26-07-17_script-generatepysrdatawithz_refine-apply-different-conditions-in-plot-filtering_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
+fig_name = '26-07-17_script-generatepysrdatawithz_refine-apply-different-conditions-in-plot-filtering_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
 % ====================================================================================
 
 % Model Configurations
@@ -136,38 +136,45 @@ fprintf('--- Success! ---\n');
 fprintf('Final dataset contains %d rows.\n', size(final_table, 1));
 fprintf('Saved as: %s.csv\n', csv_name);
 
-%% --- Verification Plot ---
-is_int = (abs(final_table.v) > 1e-4) | (abs(final_table.dzdt_norm) > 0.1);
+%% --- Part 4: Verification Plot ---
 % Initialize Figure
 fig_final = figure('Name', 'Physics-Prioritized Analysis', 'Position', [50, 50, 1600, 500]);
+
 % Define 3 Regimes
 regime_names = {'Micro (Pre-Sliding)', 'Meso (Stribeck)', 'Macro (Viscous)'};
 regime_limits = [0, 1e-3; 1e-3, 0.1; 0.1, inf];
+
+% Condition for Spring Mass Model
+is_int_spMa = (abs(final_table.v) > 1e-4) | (abs(final_table.dzdt_norm) > 0.1);
 
 for r = 1:3
     subplot(1, 3, r); hold on;
     v_min = regime_limits(r, 1);
     v_max = regime_limits(r, 2);
 
-    for s = [0, 1] % 0=Blue, 1=Red
-        % Extract all interesting points in the regime
-        idx_int = find(is_int & abs(final_table.v) >= v_min & abs(final_table.v) < v_max & final_table.Source == s);
+    % Spring Mas Model
+    in_reg_spMa = abs(final_table.v) >= v_min & abs(final_table.v) < v_max & final_table.Source == 0;
 
-        % Extract few boring points in the regime
-        idx_bor_all = find(~is_int & abs(final_table.v) >= v_min & abs(final_table.v) < v_max & final_table.Source == s);
-        idx_bor_sample = idx_bor_all(randperm(length(idx_bor_all), min(1000, length(idx_bor_all))));
+    idx_int_spMa = find(in_reg_spMa & is_int_spMa);
+    idx_bor_spMa = find(in_reg_spMa & ~is_int_spMa);
+    idx_bor_spMa_sample = idx_bor_spMa(randperm(length(idx_bor_spMa), min(1000, length(idx_bor_spMa))));
 
-        color = [0.8 0 0]; if s==0, color = [0 0.4 0.8]; end % Blue for Spring-Mass, Red for Velocity
+    if ~isempty(idx_bor_spMa_sample)
+        scatter3(final_table.v(idx_bor_spMa_sample), final_table.z_norm(idx_bor_spMa_sample), ...
+            final_table.F(idx_bor_spMa_sample), 2, [0 0.4 0.8], 'MarkerEdgeAlpha', 0.1);
+    end
+    if ~isempty(idx_int_spMa)
+        h(1) = scatter3(final_table.v(idx_int_spMa), final_table.z_norm(idx_int_spMa), ...
+            final_table.F(idx_int_spMa), 5, [0 0.4 0.8], 'filled');
+    end
 
-        % Plot
-        if ~isempty(idx_bor_sample)
-            scatter3(final_table.v(idx_bor_sample), final_table.z_norm(idx_bor_sample), final_table.F(idx_bor_sample), ...
-                2, color, 'MarkerEdgeAlpha', 0.2);
-        end
-        if ~isempty(idx_int)
-            h(s+1) = scatter3(final_table.v(idx_int), final_table.z_norm(idx_int), final_table.F(idx_int), ...
-                6, color, 'filled');
-        end
+    % Velocity Model
+    idx_reg_vel = find(abs(final_table.v) >= v_min & abs(final_table.v) < v_max & final_table.Source == 1);
+    idx_vel_sample = idx_reg_vel(randperm(length(idx_reg_vel), min(50000, length(idx_reg_vel))));
+
+    if ~isempty(idx_vel_sample)
+        h(2) = scatter3(final_table.v(idx_vel_sample), final_table.z_norm(idx_vel_sample), ...
+            final_table.F(idx_vel_sample), 5, [0.8 0 0], 'filled');
     end
 
     title(regime_names{r}); xlabel('velocity /(m/s)'); ylabel('z (normalized)'); zlabel('F'); grid on;
