@@ -5,13 +5,13 @@ clearvars; clc; close all;
 % ====================================================================================
 % USER SETTINGS (Directory and Naming)
 % ====================================================================================
-% FOR MY DESKTOP 
-save_csv_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_csv_files';
-% FOR MY DESKTOP 
-save_fig_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
+% FOR MY DESKTOP save_csv_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_csv_files';
+% FOR MY DESKTOP save_fig_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
 
-% FOR MY LAPTOP save_csv_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_csv_files';
-% FOR MY LAPTOP save_fig_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
+% FOR MY LAPTOP 
+save_csv_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_csv_files';
+% FOR MY LAPTOP 
+save_fig_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
 
 csv_name = '26-07-21_script-generatepysrdatawithz_checking-size_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
 fig_name = '26-07-21_script-generatepysrdatawithz_checking-size_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
