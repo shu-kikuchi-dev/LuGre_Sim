@@ -5,16 +5,16 @@ clearvars; clc; close all;
 % ====================================================================================
 % USER SETTINGS (Directory and Naming)
 % ====================================================================================
-% FOR MY DESKTOP save_csv_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_csv_files';
-% FOR MY DESKTOP save_fig_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
+% FOR MY DESKTOP 
+save_csv_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_csv_files';
+% FOR MY DESKTOP 
+save_fig_dir = 'D:\shu-kikuchi-projects\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
 
-% FOR MY LAPTOP 
-save_csv_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_csv_files';
-% FOR MY LAPTOP 
-save_fig_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
+% FOR MY LAPTOP save_csv_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_csv_files';
+% FOR MY LAPTOP save_fig_dir = 'C:\Users\shuki\Projects\work\kosen_graduate_study\MATLAB_project\LuGre_Sim\tmp_figs\MasterData';
 
-csv_name = '26-07-21_script-generatepysrdatawithz_checking-size_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
-fig_name = '26-07-21_script-generatepysrdatawithz_checking-size_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
+csv_name = '26-07-21_script-generatepysrdatawithz_refine-to-have-35:35:30-ratio_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10'];
+fig_name = '26-07-21_script-generatepysrdatawithz_refine-to-have-35:35:30-ratio_ode23tbf_maxstepsize-1en4_relativetolerance-1en7_absolutetolerance-1en10';
 % ====================================================================================
 
 % Model Configurations
@@ -110,30 +110,49 @@ for om_val = omega_list
 end
 
 %% --- Part 3: Post-Processing (Data Science Specs) ---
-% Balancing: Keep transients, downsample steady-state
-fprintf('Balancing and Filtering Data...\n');
+% Blue: Spring Mass Model, Red: Velocity Model
+fprintf('Refining data to exactly 200 000 rows (Ratio 35:35:30 = Red:Blue-int:Blue-bor)...\n');
 
-% Separate Indices
-idx_spMa = find(master_table.Source == 0); % Spring Mass (Blue)
-idx_vel = find(master_table.Source == 1); % Velocity (Red)
+% Define Target Row Counts
+target_total = 200000;
+n_red_target = round(target_total * 0.35);
+n_blue_int_target = round(target_total * 0.35);
+n_blue_bor_target = round(target_total * 0.30);
 
-% Spring Mass Model Filtering
-is_int_spMa = (abs(master_table.v(idx_spMa)) > 1e-4) | (abs(master_table.dzdt_norm(idx_spMa)) > 0.1);
-keep_spMa = [idx_spMa(is_int_spMa); idx_spMa(find(~is_int_spMa, 1, 'first'):500:end)];
+% Separate Row Indices
+idx_B = find(master_table.Source == 0); % Spring Mass
+idx_R = find(master_table.Source == 1); % Velocity
 
-% Velocity Model Filtering
-keep_vel = idx_vel(1:100:end);
+% Sub-Divide Blue Model
+is_int_B = (abs(master_table.v(idx_B)) > 1e-4) | (abs(master_table.dzdt_norm(idx_B)) > 0.1);
+blue_int_pool = idx_B(is_int_B);
+blue_bor_pool = idx_B(~is_int_B);
+
+% Extraction
+fprintf('   - Extracting Red (Velocity) data...\n');
+keep_red = idx_R(round(linspace(1, length(idx_R), n_red_target)));
+
+fprintf('   - Extracting Blue (Spring Mass, Interesting) dara...\n');
+keep_blue_int = blue_int_pool(round(linspace(1, length(blue_int_pool), n_blue_int_target)));
+
+fprintf('   - Extracting Blue (Spring Mass, Boring) data...\n');
+keep_blue_bor = blue_bor_pool(round(linspace(1, length(blue_bor_pool), n_blue_bor_target)));
 
 % Combine and Sort
-final_idx = sort([keep_spMa; keep_vel]);
+final_idx = sort([keep_red; keep_blue_int; keep_blue_bor]);
 final_table = master_table(final_idx, :);
 
-% Shuffle and Export for PySR
+% Shuffle for the CSV Export
 csv_path = fullfile(save_csv_dir, [csv_name, '.csv']);
 shuffled_table = final_table(randperm(size(final_table, 1)), :);
 writetable(shuffled_table, csv_path);
+
 fprintf('--- Success! ---\n');
-fprintf('Final dataset contains %d rows.\n', size(final_table, 1));
+fprintf('Final Dataset Composition:\n');
+fprintf('   - Velocity Model (Red): %d rows\n', length(keep_red));
+fprintf('   - Spring-Mass Model Interesting (Blue): %d rows\n', length(keep_blue_int));
+fprintf('   - Spring-Mass Model Boring (Blue): %d rows\n', length(keep_blue_bor));
+fprintf('   - Total: %d rows', size(final_table, 1));
 fprintf('Saved as: %s.csv\n', csv_name);
 
 %% --- Part 4: Verification Plot ---
